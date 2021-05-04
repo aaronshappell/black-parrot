@@ -336,10 +336,10 @@ module bp_unicore_lite
   assign io_cmd_yumi_o = proc_cmd_yumi_li[2];
   assign proc_cmd_last_lo[2] = io_cmd_v_i;
 
-  assign proc_resp_ready_lo[2] = io_resp_ready_i;
+  assign proc_resp_ready_lo[2] = io_resp_ready_and_i;
   assign io_resp_o = uce_mem_msg_width_lp'(proc_resp_li[2]);
-  assign io_resp_v_o = proc_resp_v_li[2] & io_resp_ready_i;
-  wire io_resp_last_unused = proc_resp_last_li[2] & proc_resp_v_li[2]; 
+  assign io_resp_v_o = proc_resp_v_li[2] & io_resp_ready_and_i;
+  wire io_resp_last_unused = proc_resp_last_li[2] & proc_resp_v_li[2];
 
   // Command arbitration logic
   // This is suboptimal. We could have an arbiter for each of I$ D$ and I/O, to get higher
@@ -426,11 +426,11 @@ module bp_unicore_lite
   wire is_mem_cmd          = (~local_cmd_li & ~is_other_hio) || (local_cmd_li & (device_cmd_li == cache_dev_gp));
   wire is_loopback_cmd     = local_cmd_li & ~is_cfg_cmd & ~is_clint_cmd & ~is_io_cmd & ~is_mem_cmd;
 
-  assign cfg_cmd_v_li      = |proc_cmd_grant_lo & cfg_cmd_ready_lo & is_cfg_cmd;
-  assign clint_cmd_v_li    = |proc_cmd_grant_lo & clint_cmd_ready_lo & is_clint_cmd;
-  assign io_cmd_v_o        = |proc_cmd_grant_lo & io_cmd_ready_i & is_io_cmd;
+  assign cfg_cmd_v_li      = |proc_cmd_grant_lo & cfg_cmd_ready_and_lo & is_cfg_cmd;
+  assign clint_cmd_v_li    = |proc_cmd_grant_lo & clint_cmd_ready_and_lo & is_clint_cmd;
+  assign io_cmd_v_o        = |proc_cmd_grant_lo & io_cmd_ready_and_i & is_io_cmd;
   assign mem_cmd_v_o       = |proc_cmd_grant_lo & mem_cmd_ready_and_i & is_mem_cmd;
-  assign loopback_cmd_v_li = |proc_cmd_grant_lo & loopback_cmd_ready_lo & is_loopback_cmd;
+  assign loopback_cmd_v_li = |proc_cmd_grant_lo & loopback_cmd_ready_and_lo & is_loopback_cmd;
 
   wire any_cmd_li = |{mem_cmd_v_o, io_cmd_v_o, loopback_cmd_v_li, clint_cmd_v_li, cfg_cmd_v_li};
 
