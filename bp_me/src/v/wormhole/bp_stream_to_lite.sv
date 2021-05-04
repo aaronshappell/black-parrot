@@ -48,7 +48,7 @@ module bp_stream_to_lite
 
   bp_bedrock_in_msg_header_s in_msg_header_lo;
   logic streaming_r, stream_clear;
-  // Accept no header when in streaming state (We want to latch the header with critical address) 
+  // Accept no header when in streaming state (We want to latch the header with critical address)
   bsg_dff_en_bypass
    #(.width_p($bits(bp_bedrock_in_msg_header_s)))
    header_reg
@@ -88,7 +88,7 @@ module bp_stream_to_lite
     ,.v_i(in_msg_v_i)
     ,.ready_and_o(in_msg_ready_and_o)
     ,.len_i(num_stream_cmds-1'b1)
-   
+
     ,.data_o(sipo_data_lo)
     ,.v_o(out_msg_v_o)
     ,.ready_and_i(out_msg_ready_and_i)

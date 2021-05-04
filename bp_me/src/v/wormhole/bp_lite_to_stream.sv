@@ -90,7 +90,7 @@ module bp_lite_to_stream
   wire [data_len_width_lp-1:0] num_stream_cmds = has_data
     ? `BSG_MAX(((1'b1 << in_msg_header_lo.size) / out_data_bytes_lp), 1'b1)
     : 1'b1;
-  
+
   logic first_lo;
   bsg_parallel_in_serial_out_passthrough_dynamic
    #(.width_p(out_data_width_p)
@@ -101,14 +101,14 @@ module bp_lite_to_stream
 
     // data_i and v_i should hold during the entire transcation
     ,.data_i(in_msg_data_lo)
-    ,.v_i(in_msg_v_i | streaming_r)
+    ,.v_i((in_msg_ready_and_o & in_msg_v_i) | streaming_r)
     ,.ready_and_o(/* unused */)
     ,.len_i(num_stream_cmds - 1'b1)
 
     ,.data_o(out_msg_data_o)
     ,.v_o(out_msg_v_o)
     ,.ready_and_i(out_msg_ready_and_i)
-    ,.first_o(first_lo)  
+    ,.first_o(first_lo)
     );
 
   // We wouldn't need this counter if we could peek into the PISO...
@@ -121,7 +121,7 @@ module bp_lite_to_stream
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
 
-     ,.set_i(in_msg_v_i)
+     ,.set_i(in_msg_ready_and_o & in_msg_v_i)
      ,.en_i(cnt_up)
      ,.val_i(first_cnt + cnt_up)
      ,.count_o(current_cnt)
@@ -133,10 +133,10 @@ module bp_lite_to_stream
    last_cnt_reg
     (.clk_i(clk_i)
     ,.data_i(last_cnt)
-    ,.en_i(in_msg_v_i)
+    ,.en_i(in_msg_ready_and_o & in_msg_v_i)
     ,.data_o(last_cnt_r)
     );
-  
+
   assign stream_cnt = first_lo ? first_cnt : current_cnt;
   wire cnt_done = (stream_cnt == last_cnt_r);
 

@@ -33,7 +33,7 @@ module bp_stream_pump_out
   , output logic                                   mem_v_o
   , output logic                                   mem_last_o
   , input                                          mem_ready_and_i
-  
+
   // FSM side
   , input        [xce_mem_msg_header_width_lp-1:0] fsm_base_header_i
   , input        [stream_data_width_p-1:0]         fsm_data_i
@@ -46,7 +46,7 @@ module bp_stream_pump_out
   );
 
   `declare_bp_bedrock_mem_if(paddr_width_p, stream_data_width_p, lce_id_width_p, lce_assoc_p, xce);
-  
+
   `bp_cast_i(bp_bedrock_xce_mem_msg_header_s, fsm_base_header);
   `bp_cast_o(bp_bedrock_xce_mem_msg_header_s, mem_header);
 
@@ -54,7 +54,7 @@ module bp_stream_pump_out
 
   logic set_cnt, cnt_up, is_last_cnt, is_stream, streaming_r;
   logic [data_len_width_lp-1:0] wrap_around_cnt;
-  
+
   if (stream_words_lp == 1)
     begin: full_block_stream
       assign is_stream = '0;
@@ -64,7 +64,7 @@ module bp_stream_pump_out
       assign is_last_cnt = 1'b1;
     end
   else
-    begin: sub_block_stream 
+    begin: sub_block_stream
       logic [data_len_width_lp-1:0] first_cnt, last_cnt, current_cnt;
       bsg_counter_set_en
        #(.max_val_p(stream_words_lp-1), .reset_val_p(0))
@@ -72,7 +72,7 @@ module bp_stream_pump_out
         (.clk_i(clk_i)
         ,.reset_i(reset_i)
 
-        ,.set_i(set_cnt) 
+        ,.set_i(set_cnt)
         ,.en_i(cnt_up | stream_done_o)
         ,.val_i(first_cnt + cnt_up)
         ,.count_o(current_cnt)
@@ -88,29 +88,29 @@ module bp_stream_pump_out
         ,.clear_i(stream_done_o)
         ,.data_o(streaming_r)
         );
-        
+
       always_comb
-        begin 
+        begin
           first_cnt = fsm_base_header_cast_i.addr[stream_offset_width_lp+:data_len_width_lp];
           last_cnt  = first_cnt + num_stream - 1'b1;
-      
+
           is_stream = stream_mask_p[fsm_base_header_cast_i.msg_type] & ~(first_cnt == last_cnt);
           stream_cnt_o = set_cnt ? first_cnt : current_cnt;
           is_last_cnt = (stream_cnt_o == last_cnt) | ~is_stream;
         end
 
-      // Generate proper wrap-around address for different incoming msg size dynamically. 
+      // Generate proper wrap-around address for different incoming msg size dynamically.
       // __________________________________________________________
       // |                |          block offset                  |  input address
       // |  upper address |________________________________________|
       // |                |     stream count   |  stream offset    |  output address
       // |________________|____________________|___________________|
-      // Block size = stream count * stream size, with a request smaller than block_width_p, 
+      // Block size = stream count * stream size, with a request smaller than block_width_p,
       // a narrower stream_cnt is required to generate address for each sub-stream pkt.
       // Eg. block_width_p = 512, stream_data_witdh_p = 64, then counter width = log2(512/64) = 3
       // size = 512: a wrapped around seq: 2, 3, 4, 5, 6, 7, 0, 1  all 3-bit of cnt is used
       // size = 256: a wrapped around seq: 2, 3, 0, 1              only lower 2-bit of cnt is used
-      
+
       // sel_mask is generated to determined how many bits of counter is used.
       // For num_stream = x, (x-1) denotes the bits using the counter
       logic [data_len_width_lp-1:0] sel_mask;
@@ -128,8 +128,8 @@ module bp_stream_pump_out
 
   wire has_data = payload_mask_p[fsm_base_header_cast_i.msg_type];
 
-  logic [stream_offset_width_lp+data_len_width_lp-1:0] sub_block_adddr, sub_block_adddr_tuned;   
-  always_comb 
+  logic [stream_offset_width_lp+data_len_width_lp-1:0] sub_block_adddr, sub_block_adddr_tuned;
+  always_comb
     begin
       mem_header_cast_o = fsm_base_header_cast_i;
       if (~is_stream | has_data)
@@ -137,14 +137,14 @@ module bp_stream_pump_out
           // handle message size <= stream_data_width_p | command w/o data payload | message size > stream_data_width_p w/ data payload
           mem_v_o = fsm_v_i;
           fsm_ready_and_o = mem_ready_and_i & mem_v_o;
-          
+
           cnt_up  = fsm_ready_and_o & ~is_last_cnt;
           set_cnt = ~streaming_r;
 
           mem_header_cast_o.addr = { fsm_base_header_cast_i.addr[paddr_width_p-1:stream_offset_width_lp+data_len_width_lp]
                                    , wrap_around_cnt
                                    , fsm_base_header_cast_i.addr[0+:stream_offset_width_lp]};
-        
+
         end
       else
         begin
@@ -155,11 +155,11 @@ module bp_stream_pump_out
           cnt_up  = fsm_v_i & ~is_last_cnt;
           set_cnt = ~streaming_r;
         end
-      
+
       mem_data_o = fsm_data_i;
       mem_last_o = is_last_cnt & mem_v_o;
 
-      stream_done_o = mem_ready_and_i & mem_v_o & is_last_cnt; 
+      stream_done_o = mem_ready_and_i & mem_v_o & is_last_cnt;
     end
 
 endmodule

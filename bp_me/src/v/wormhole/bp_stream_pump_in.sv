@@ -7,7 +7,7 @@ module bp_stream_pump_in
  import bp_me_pkg::*;
  #(parameter bp_params_e bp_params_p = e_bp_default_cfg
    `declare_bp_proc_params(bp_params_p)
-   
+
    , parameter stream_data_width_p = dword_width_gp
    , parameter block_width_p = cce_block_width_p
 
@@ -30,7 +30,7 @@ module bp_stream_pump_in
   , input                                           mem_v_i
   , input                                           mem_last_i
   , output logic                                    mem_ready_and_o
-  
+
   // FSM side
   , output logic [xce_mem_msg_header_width_lp-1:0] fsm_base_header_o
   , output logic [paddr_width_p-1:0]               fsm_addr_o
@@ -44,7 +44,7 @@ module bp_stream_pump_in
   );
 
   `declare_bp_bedrock_mem_if(paddr_width_p, stream_data_width_p, lce_id_width_p, lce_assoc_p, xce);
-  
+
   `bp_cast_o(bp_bedrock_xce_mem_msg_header_s, fsm_base_header);
 
   bp_bedrock_xce_mem_msg_header_s mem_header_lo;
@@ -87,7 +87,7 @@ module bp_stream_pump_in
         (.clk_i(clk_i)
         ,.reset_i(reset_i)
 
-        ,.set_i(stream_new_o & cnt_up) 
+        ,.set_i(stream_new_o & cnt_up)
         ,.en_i(cnt_up | stream_done_o)
         ,.val_i(first_cnt + cnt_up)
         ,.count_o(current_cnt)
@@ -103,8 +103,8 @@ module bp_stream_pump_in
         ,.clear_i(stream_done_o)
         ,.data_o(streaming_r)
         );
-      
-      bsg_dff_en_bypass 
+
+      bsg_dff_en_bypass
        #(.width_p(block_offset_width_lp))
        critical_addr_reg
         (.clk_i(clk_i)
@@ -122,19 +122,19 @@ module bp_stream_pump_in
           stream_cnt = stream_new_o ? first_cnt : current_cnt;
           is_last_cnt = (stream_cnt == last_cnt) | ~is_stream;
         end
-          
-      // Generate proper wrap-around address for different incoming msg size dynamically. 
+
+      // Generate proper wrap-around address for different incoming msg size dynamically.
       // __________________________________________________________
       // |                |          block offset                  |  input address
       // |  upper address |________________________________________|
       // |                |     stream count   |  stream offset    |  output address
       // |________________|____________________|___________________|
-      // Block size = stream count * stream size, with a request smaller than block_width_p, 
+      // Block size = stream count * stream size, with a request smaller than block_width_p,
       // a narrower stream_cnt is required to generate address for each sub-stream pkt.
       // Eg. block_width_p = 512, stream_data_witdh_p = 64, then counter width = log2(512/64) = 3
       // size = 512: a wrapped around seq: 2, 3, 4, 5, 6, 7, 0, 1  all 3-bit of cnt is used
       // size = 256: a wrapped around seq: 2, 3, 0, 1              only lower 2-bit of cnt is used
-      
+
       // sel_mask is generated to determined how many bits of counter is used.
       // For num_stream = x, (x-1) denotes the bits using the counter
       logic [data_len_width_lp-1:0] sel_mask, wrap_around_cnt;
@@ -148,7 +148,7 @@ module bp_stream_pump_in
         ,.sel_i(sel_mask)
         ,.data_o(wrap_around_cnt)
       );
-      
+
       assign fsm_addr_o = { mem_header_lo.addr[paddr_width_p-1:stream_offset_width_lp+data_len_width_lp]
                           , wrap_around_cnt
                           , mem_header_lo.addr[0+:stream_offset_width_lp]};
