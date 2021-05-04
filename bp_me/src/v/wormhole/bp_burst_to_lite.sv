@@ -68,14 +68,14 @@ module bp_burst_to_lite
     ,.reset_i(reset_i)
     ,.set_i(in_msg_header_v_i)
     ,.clear_i(header_clear)
-    ,.data_o(header_v_r) 
+    ,.data_o(header_v_r)
     );
 
   assign header_v_lo  = in_msg_header_v_i | header_v_r;
   assign header_clear = out_msg_v_o & out_msg_ready_and_i;
 
   // Accept no new header as long as a valid header exists
-  assign in_msg_header_ready_and_o = ~header_v_r; 
+  assign in_msg_header_ready_and_o = ~header_v_r;
 
   localparam data_len_width_lp = `BSG_SAFE_CLOG2(burst_words_lp);
 
@@ -95,7 +95,7 @@ module bp_burst_to_lite
     ,.v_i(in_msg_data_v_i)
     ,.ready_and_o(in_msg_data_ready_and_o)
     ,.len_i(num_burst_cmds-1'b1)
-   
+
     ,.data_o(data_lo)
     ,.v_o(data_v_lo)
     ,.ready_and_i(out_msg_ready_and_i)
@@ -105,7 +105,7 @@ module bp_burst_to_lite
   bp_bedrock_out_msg_s msg_cast_o;
   assign msg_cast_o = '{header: header_lo, data: data_lo};
   assign out_msg_o  = msg_cast_o;
-  
+
   wire has_data_out  = payload_mask_p[header_lo.msg_type];
   assign out_msg_v_o = header_v_lo & (data_v_lo | ~has_data_out);
 

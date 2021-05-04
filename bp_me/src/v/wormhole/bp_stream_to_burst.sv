@@ -48,7 +48,7 @@ module bp_stream_to_burst
 
   bp_bedrock_out_msg_header_s in_msg_header_cast_o;
   assign in_msg_header_cast_o = in_msg_header_i;
-  
+
   logic streaming_r;
   bsg_dff_reset_set_clear
    #(.width_p(1)
@@ -72,8 +72,8 @@ module bp_stream_to_burst
 
   // passthrough data,
   assign out_msg_data_o = in_msg_data_i;
-  assign out_msg_data_v_o = streaming_r 
-                            ? in_msg_v_i 
+  assign out_msg_data_v_o = streaming_r
+                            ? in_msg_v_i
                             : in_msg_v_i & has_data;
 
   //synopsys translate_off

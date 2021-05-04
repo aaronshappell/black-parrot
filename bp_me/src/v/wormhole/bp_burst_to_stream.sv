@@ -72,13 +72,13 @@ module bp_burst_to_stream
     ,.reset_i(reset_i)
     ,.set_i(in_msg_header_v_i)
     ,.clear_i(header_clear)
-    ,.data_o(header_v_r) 
+    ,.data_o(header_v_r)
     );
   assign header_v_lo  = in_msg_header_v_i | header_v_r;
   assign header_clear = out_msg_ready_and_i & out_msg_v_o & out_msg_last_o;
 
   // Accept no new header as long as a valid header exists
-  assign in_msg_header_ready_and_o = ~header_v_r; 
+  assign in_msg_header_ready_and_o = ~header_v_r;
 
   // has_data: start streaming data, keep the header in fifo and increment the address
   // ~has_data: pass the header
@@ -97,7 +97,7 @@ module bp_burst_to_stream
       assign is_last_cnt = out_msg_v_o;
       assign out_msg_header_cast_o = out_header_lo;
    end
-  else 
+  else
     begin: sub_block_stream
       logic set_cnt, cnt_up, streaming_r;
       logic [data_len_width_lp-1:0] first_cnt, last_cnt, current_cnt, stream_cnt;
@@ -110,7 +110,7 @@ module bp_burst_to_stream
         (.clk_i(clk_i)
         ,.reset_i(reset_i)
 
-        ,.set_i(set_cnt) 
+        ,.set_i(set_cnt)
         ,.en_i(cnt_up)
         ,.val_i(first_cnt+cnt_up)
         ,.count_o(current_cnt)
@@ -126,7 +126,7 @@ module bp_burst_to_stream
         ,.clear_i(out_msg_last_o)
         ,.data_o(streaming_r)
         );
-      
+
       assign first_cnt = out_header_lo.addr[stream_offset_width_lp+:data_len_width_lp];
       assign last_cnt  = first_cnt + num_stream - 1'b1;
 
@@ -144,7 +144,7 @@ module bp_burst_to_stream
           out_msg_header_cast_o.addr = { out_header_lo.addr[paddr_width_p-1:stream_offset_width_lp+data_len_width_lp]
                                        , {(data_len_width_lp>0){stream_cnt}}
                                        , out_header_lo.addr[0+:stream_offset_width_lp] };
-        end 
+        end
     end
 
   assign out_msg_last_o = out_msg_v_o & is_last_cnt;

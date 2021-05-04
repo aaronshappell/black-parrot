@@ -318,7 +318,7 @@ module bp_uce
     ,.mem_v_i(mem_resp_v_i)
     ,.mem_last_i(mem_resp_last_i)
     ,.mem_ready_and_o(mem_resp_ready_and_o)
-    
+
     ,.fsm_base_header_o(resp_header_li)
     ,.fsm_addr_o(mem_resp_addr_lo)
     ,.fsm_data_o(resp_data_li)
@@ -350,7 +350,7 @@ module bp_uce
 
   // When fill_width_p < block_width_p, multicycle fill and writeback is implemented in cache flush write,
   // cache miss load with and without dirty data writeback. Details are operated by stream pumps
-  
+
   logic [block_size_in_fill_lp-1:0] fill_index_shift;
   logic [bank_offset_width_lp-1:0] bank_index;
   assign bank_index = mem_cmd_cnt << bank_sub_offset_width_lp;
@@ -664,7 +664,7 @@ module bp_uce
               cmd_payload.lce_id          = lce_id_i;
               cmd_header_lo.payload       = cmd_payload;
               cmd_v_lo = cache_req_metadata_v_r & ~cache_req_credits_full_o;
-              
+
               state_n = (cmd_v_lo & cmd_ready_and_li)
                         ? cache_req_metadata_r.dirty
                           ? e_writeback_evict
@@ -674,7 +674,7 @@ module bp_uce
           else if (uc_load_v_r | uc_amo_v_r | uc_store_v_r)
             begin
               cmd_header_lo.msg_type   = uc_load_v_r ? e_bedrock_mem_uc_rd : uc_amo_v_r ? e_bedrock_mem_amo : e_bedrock_mem_uc_wr;
-              cmd_header_lo.addr       = cache_req_r.addr; 
+              cmd_header_lo.addr       = cache_req_r.addr;
               cmd_header_lo.size       = bp_bedrock_msg_size_e'(cache_req_r.size);
               cmd_payload.lce_id       = lce_id_i;
               cmd_header_lo.payload    = cmd_payload;
@@ -736,7 +736,7 @@ module bp_uce
             cmd_header_lo.payload  = cmd_payload;
             cmd_data_lo            = writeback_data;
             cmd_v_lo = dirty_data_v_r & dirty_tag_v_r & ~cache_req_credits_full_o;
-        
+
             state_n = mem_cmd_done ? e_ready : e_writeback_write_req;
           end
         e_read_wait:

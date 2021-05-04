@@ -71,7 +71,7 @@ module bp_lite_to_burst
   assign header_sent_clear = in_msg_v_i & in_msg_ready_and_o; // clear when the lite packet is acked
 
   assign out_msg_header_o   = in_msg_cast_i.header;
-  assign out_msg_header_v_o = in_msg_v_i & ~header_sent_r; 
+  assign out_msg_header_v_o = in_msg_v_i & ~header_sent_r;
 
   wire has_data = payload_mask_p[in_msg_cast_i.header.msg_type];
   localparam data_len_width_lp = `BSG_SAFE_CLOG2(burst_words_lp);
@@ -92,7 +92,7 @@ module bp_lite_to_burst
     ,.data_o(out_msg_data_o)
     ,.v_o(out_msg_data_v_o)
     ,.ready_and_i(out_msg_data_ready_and_i)
-    ,.first_o(/* unused */)  
+    ,.first_o(/* unused */)
     );
 
   // If has data, data takes the control of the upstream handshake due to multi-cycle burst,

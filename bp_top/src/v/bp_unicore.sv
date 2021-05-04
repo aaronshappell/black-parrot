@@ -123,7 +123,7 @@ module bp_unicore
      ,.mem_resp_last_o(mem_resp_last_li)
      ,.mem_resp_v_o(mem_resp_v_li)
      ,.mem_resp_ready_and_i(mem_resp_ready_and_lo)
-     
+
      ,.cache_pkt_o(cache_pkt_li)
      ,.cache_pkt_v_o(cache_pkt_v_li)
      ,.cache_pkt_ready_i(cache_pkt_ready_lo)
@@ -133,7 +133,7 @@ module bp_unicore
      ,.cache_yumi_o(cache_data_yumi_li)
      );
 
-  
+
   bsg_cache
    #(.addr_width_p(caddr_width_p)
      ,.data_width_p(l2_data_width_p)
@@ -155,27 +155,27 @@ module bp_unicore
    cache
     (.clk_i(clk_i)
      ,.reset_i(reset_i)
-  
+
      ,.cache_pkt_i(cache_pkt_li)
      ,.v_i(cache_pkt_v_li)
      ,.ready_o(cache_pkt_ready_lo)
-  
+
      ,.data_o(cache_data_lo)
      ,.v_o(cache_data_v_lo)
      ,.yumi_i(cache_data_yumi_li)
-  
+
      ,.dma_pkt_o(dma_pkt_o)
      ,.dma_pkt_v_o(dma_pkt_v_o)
      ,.dma_pkt_yumi_i(dma_pkt_yumi_i)
-  
+
      ,.dma_data_i(dma_data_i)
      ,.dma_data_v_i(dma_data_v_i)
      ,.dma_data_ready_o(dma_data_ready_and_o)
-  
+
      ,.dma_data_o(dma_data_o)
      ,.dma_data_v_o(dma_data_v_o)
      ,.dma_data_yumi_i(dma_data_yumi_i)
-  
+
      ,.v_we_o()
      );
 
