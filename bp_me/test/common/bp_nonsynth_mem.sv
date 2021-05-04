@@ -49,7 +49,7 @@ module bp_nonsynth_mem
 
      ,.in_msg_i(mem_cmd_i)
      ,.in_msg_v_i(mem_cmd_v_i)
-     ,.in_msg_ready_and_o(mem_cmd_ready_o)
+     ,.in_msg_ready_and_o(mem_cmd_ready_and_o)
 
      ,.out_msg_header_o(mem_cmd_header_lo)
      ,.out_msg_data_o(mem_cmd_data_lo)
