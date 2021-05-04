@@ -458,7 +458,7 @@ module wrapper
 
                 ,.out_msg_o(mem_cmd_o)
                 ,.out_msg_v_o(mem_cmd_v_o)
-                ,.out_msg_ready_and_i(mem_cmd_ready_i)
+                ,.out_msg_ready_and_i(mem_cmd_ready_and_i)
                 );
 
               bp_lite_to_stream
@@ -491,7 +491,7 @@ module wrapper
                                 ,data: mem_cmd_data_lo};
                   mem_cmd_o            = mem_cmd_lo;
                   mem_cmd_v_o          = mem_cmd_v_lo;
-                  mem_cmd_ready_and_li = mem_cmd_ready_i;
+                  mem_cmd_ready_and_li = mem_cmd_ready_and_i;
 
                   mem_resp_li = mem_resp_i;
                   mem_resp_header_li    = mem_resp_li.header;
