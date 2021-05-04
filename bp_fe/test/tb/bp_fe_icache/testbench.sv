@@ -92,14 +92,14 @@ module testbench
   logic trace_v_li, trace_ready_lo;
 
   logic [instr_width_gp-1:0] icache_data_lo;
-  logic icache_data_v_lo;
+  logic icache_data_v_lo, icache_ready_li;
 
   logic [trace_rom_addr_width_lp-1:0] trace_rom_addr_lo;
   logic [trace_replay_data_width_lp+3:0] trace_rom_data_li;
 
   logic [vaddr_width_p-1:0] vaddr_li;
   logic [ptag_width_p-1:0] ptag_li;
-  logic uncached_li;
+  logic uncached_li, nonidem_li, trace_yumi_li;
 
   logic switch_cce_mode;
   always_comb begin

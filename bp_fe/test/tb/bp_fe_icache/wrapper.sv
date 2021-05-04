@@ -133,7 +133,7 @@ module wrapper
      ,.data_o(rolly_ptag_r)
      );
 
-  logic ptag_v_r, uncached_r, nonidem_r;
+  logic ptag_v_r, uncached_r, rolly_nonidem_r;
   bsg_dff_reset
    #(.width_p(3))
    ptag_v_dff
@@ -180,7 +180,7 @@ module wrapper
      ,.ptag_i(rolly_ptag_r)
      ,.ptag_v_i(ptag_v_r)
      ,.uncached_i(uncached_r)
-     ,.nonidem_i(nonidem_r)
+     ,.nonidem_i(rolly_nonidem_r)
      ,.poison_tl_i(1'b0)
 
      ,.data_o(data_o)
@@ -338,68 +338,36 @@ module wrapper
       assign mem_resp_yumi_o = mem_resp_ready_and_lo & mem_resp_v_i;
   end
   else begin: UCE
+    // memory response port to FIFO
+    logic fifo_mem_resp_ready_and_lo;
+    // FIFO output
     bp_bedrock_cce_mem_msg_s fifo_mem_resp_lo;
-    logic mem_resp_ready_lo, mem_resp_ready_li;
     logic fifo_mem_resp_v_lo, fifo_mem_resp_yumi_li;
 
     bp_bedrock_cce_mem_msg_header_s mem_cmd_header_lo, mem_resp_header_li;
     logic [icache_fill_width_p-1:0] mem_cmd_data_lo, mem_resp_data_li;
     logic mem_cmd_v_lo, mem_cmd_ready_and_li, mem_cmd_last_lo;
     logic mem_resp_v_li, mem_resp_ready_and_lo, mem_resp_last_li;
+    logic mem_resp_ready_lo, mem_resp_ready_li;
 
-    bp_uce
-     #(.bp_params_p(bp_params_p)
-       ,.uce_mem_data_width_p(cce_block_width_p)
-       ,.assoc_p(icache_assoc_p)
-       ,.sets_p(icache_sets_p)
-       ,.block_width_p(icache_block_width_p)
-       ,.fill_width_p(icache_fill_width_p)
+    bsg_fifo_1r1w_small
+     #(.width_p(cce_mem_msg_width_lp)
+       ,.els_p(1)
        )
-     icache_uce
+     mem_resp_fifo
       (.clk_i(clk_i)
        ,.reset_i(reset_i)
 
-       ,.lce_id_i('0)
+       ,.v_i(mem_resp_v_i)
+       ,.data_i(mem_resp_i)
+       ,.ready_o(fifo_mem_resp_ready_and_lo)
 
-       ,.cache_req_i(cache_req_lo)
-       ,.cache_req_v_i(cache_req_v_lo)
-       ,.cache_req_yumi_o(cache_req_yumi_li)
-       ,.cache_req_busy_o(cache_req_busy_li)
-       ,.cache_req_metadata_i(cache_req_metadata_lo)
-       ,.cache_req_metadata_v_i(cache_req_metadata_v_lo)
-       ,.cache_req_critical_tag_o(cache_req_critical_tag_li)
-       ,.cache_req_critical_data_o(cache_req_critical_data_li)
-       ,.cache_req_complete_o(cache_req_complete_li)
-       ,.cache_req_credits_full_o(cache_req_credits_full_li)
-       ,.cache_req_credits_empty_o(cache_req_credits_empty_li)
-
-       ,.tag_mem_pkt_o(tag_mem_pkt_li)
-       ,.tag_mem_pkt_v_o(tag_mem_pkt_v_li)
-       ,.tag_mem_pkt_yumi_i(tag_mem_pkt_yumi_lo)
-       ,.tag_mem_i(tag_mem_lo)
-
-       ,.data_mem_pkt_o(data_mem_pkt_li)
-       ,.data_mem_pkt_v_o(data_mem_pkt_v_li)
-       ,.data_mem_pkt_yumi_i(data_mem_pkt_yumi_lo)
-       ,.data_mem_i(data_mem_lo)
-
-       ,.stat_mem_pkt_o(stat_mem_pkt_li)
-       ,.stat_mem_pkt_v_o(stat_mem_pkt_v_li)
-       ,.stat_mem_pkt_yumi_i(stat_mem_pkt_yumi_lo)
-       ,.stat_mem_i(stat_mem_lo)
-
-       ,.mem_cmd_header_o(mem_cmd_header_lo)
-       ,.mem_cmd_data_o(mem_cmd_data_lo)
-       ,.mem_cmd_last_o(mem_cmd_last_lo)
-       ,.mem_cmd_v_o(mem_cmd_v_lo)
-       ,.mem_cmd_ready_and_i(mem_cmd_ready_and_li)
-
-       ,.mem_resp_header_i(mem_resp_header_li)
-       ,.mem_resp_data_i(mem_resp_data_li)
-       ,.mem_resp_last_i(mem_resp_last_li)
-       ,.mem_resp_v_i(mem_resp_v_li)
-       ,.mem_resp_ready_and_o(mem_resp_ready_and_lo)
+       ,.v_o(fifo_mem_resp_v_lo)
+       ,.data_o(fifo_mem_resp_lo)
+       ,.yumi_i(fifo_mem_resp_yumi_li)
        );
+    assign mem_resp_yumi_o = fifo_mem_resp_ready_and_lo & mem_resp_v_i;
+    assign fifo_mem_resp_yumi_li = fifo_mem_resp_v_lo & mem_resp_ready_li;
 
     if (icache_fill_width_p < cce_block_width_p) begin
       bp_stream_to_lite
@@ -459,27 +427,62 @@ module wrapper
         mem_resp_last_li      = fifo_mem_resp_v_lo;
         mem_resp_ready_li     = mem_resp_ready_and_lo;
       end
-
     end
 
-    bsg_fifo_1r1w_small
-     #(.width_p(cce_mem_msg_width_lp)
-       ,.els_p(1)
+    bp_uce
+     #(.bp_params_p(bp_params_p)
+       ,.uce_mem_data_width_p(cce_block_width_p)
+       ,.assoc_p(icache_assoc_p)
+       ,.sets_p(icache_sets_p)
+       ,.block_width_p(icache_block_width_p)
+       ,.fill_width_p(icache_fill_width_p)
        )
-     mem_resp_fifo
+     icache_uce
       (.clk_i(clk_i)
        ,.reset_i(reset_i)
 
-       ,.v_i(mem_resp_v_i)
-       ,.data_i(mem_resp_i)
-       ,.ready_o(mem_resp_ready_and_lo)
+       ,.lce_id_i('0)
 
-       ,.v_o(fifo_mem_resp_v_lo)
-       ,.data_o(fifo_mem_resp_lo)
-       ,.yumi_i(fifo_mem_resp_yumi_li)
+       ,.cache_req_i(cache_req_lo)
+       ,.cache_req_v_i(cache_req_v_lo)
+       ,.cache_req_yumi_o(cache_req_yumi_li)
+       ,.cache_req_busy_o(cache_req_busy_li)
+       ,.cache_req_metadata_i(cache_req_metadata_lo)
+       ,.cache_req_metadata_v_i(cache_req_metadata_v_lo)
+       ,.cache_req_critical_tag_o(cache_req_critical_tag_li)
+       ,.cache_req_critical_data_o(cache_req_critical_data_li)
+       ,.cache_req_complete_o(cache_req_complete_li)
+       ,.cache_req_credits_full_o(cache_req_credits_full_li)
+       ,.cache_req_credits_empty_o(cache_req_credits_empty_li)
+
+       ,.tag_mem_pkt_o(tag_mem_pkt_li)
+       ,.tag_mem_pkt_v_o(tag_mem_pkt_v_li)
+       ,.tag_mem_pkt_yumi_i(tag_mem_pkt_yumi_lo)
+       ,.tag_mem_i(tag_mem_lo)
+
+       ,.data_mem_pkt_o(data_mem_pkt_li)
+       ,.data_mem_pkt_v_o(data_mem_pkt_v_li)
+       ,.data_mem_pkt_yumi_i(data_mem_pkt_yumi_lo)
+       ,.data_mem_i(data_mem_lo)
+
+       ,.stat_mem_pkt_o(stat_mem_pkt_li)
+       ,.stat_mem_pkt_v_o(stat_mem_pkt_v_li)
+       ,.stat_mem_pkt_yumi_i(stat_mem_pkt_yumi_lo)
+       ,.stat_mem_i(stat_mem_lo)
+
+       ,.mem_cmd_header_o(mem_cmd_header_lo)
+       ,.mem_cmd_data_o(mem_cmd_data_lo)
+       ,.mem_cmd_last_o(mem_cmd_last_lo)
+       ,.mem_cmd_v_o(mem_cmd_v_lo)
+       ,.mem_cmd_ready_and_i(mem_cmd_ready_and_li)
+
+       ,.mem_resp_header_i(mem_resp_header_li)
+       ,.mem_resp_data_i(mem_resp_data_li)
+       ,.mem_resp_last_i(mem_resp_last_li)
+       ,.mem_resp_v_i(mem_resp_v_li)
+       ,.mem_resp_ready_and_o(mem_resp_ready_and_lo)
        );
-    assign mem_resp_yumi_o = mem_resp_ready_lo & mem_resp_v_i;
-    assign fifo_mem_resp_yumi_li = fifo_mem_resp_v_lo & mem_resp_ready_li;
+
   end
 endmodule
 
