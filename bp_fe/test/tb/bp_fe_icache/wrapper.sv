@@ -304,6 +304,7 @@ module wrapper
        ,.data_o(fifo_lce_cmd_lo)
        );
 
+    wire mem_cmd_yumi_li = mem_cmd_v_o & mem_cmd_ready_i;
     // FSM CCE
     bp_cce_fsm_top
      #(.bp_params_p(bp_params_p))
@@ -331,7 +332,7 @@ module wrapper
 
        ,.mem_cmd_o(mem_cmd_o)
        ,.mem_cmd_v_o(mem_cmd_v_o)
-       ,.mem_cmd_yumi_i(mem_cmd_yumi_i)
+       ,.mem_cmd_yumi_i(mem_cmd_yumi_li)
        );
 
       assign mem_resp_yumi_o = mem_resp_ready_and_lo & mem_resp_v_i;
