@@ -101,23 +101,33 @@ module bp_lce_cmd
     // block (miss) on uncached stores
     , output logic                                   uc_store_req_complete_o
 
-    // LCE-CCE interface
-    // Resp: ready->valid
-    , output logic [lce_resp_msg_width_lp-1:0]       lce_resp_o
-    , output logic                                   lce_resp_v_o
-    , input                                          lce_resp_ready_then_i
+    // LCE-CCE Interface
+    // response out
+    , output logic [lce_resp_msg_header_width_lp-1:0] lce_resp_header_o
+    , output logic                                   lce_resp_header_v_o
+    , input                                          lce_resp_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_resp_data_o
+    , output logic                                   lce_resp_data_v_o
+    , input                                          lce_resp_data_ready_and_i
+    , output logic                                   lce_resp_last_o
 
-    // CCE-LCE interface
-    // Cmd_i: valid->yumi
-    , input [lce_cmd_msg_width_lp-1:0]               lce_cmd_i
-    , input                                          lce_cmd_v_i
-    , output logic                                   lce_cmd_yumi_o
+    // command out
+    , output logic [lce_cmd_msg_header_width_lp-1:0] lce_cmd_header_o
+    , output logic                                   lce_cmd_header_v_o
+    , input                                          lce_cmd_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_cmd_data_o
+    , output logic                                   lce_cmd_data_v_o
+    , input                                          lce_cmd_data_ready_and_i
+    , output logic                                   lce_cmd_last_o
 
-    // LCE-LCE interface
-    // Cmd_o: ready->valid
-    , output logic [lce_cmd_msg_width_lp-1:0]        lce_cmd_o
-    , output logic                                   lce_cmd_v_o
-    , input                                          lce_cmd_ready_then_i
+    // command in
+    , input [lce_cmd_msg_header_width_lp-1:0]        lce_cmd_header_i
+    , input                                          lce_cmd_header_v_i
+    , output logic                                   lce_cmd_header_ready_and_o
+    , input [dword_width_gp-1:0]                     lce_cmd_data_i
+    , input                                          lce_cmd_data_v_i
+    , output logic                                   lce_cmd_data_ready_and_o
+    , input                                          lce_cmd_last_i
   );
 
   `declare_bp_bedrock_lce_if(paddr_width_p, cce_block_width_p, lce_id_width_p, cce_id_width_p, lce_assoc_p, lce);
@@ -137,15 +147,15 @@ module bp_lce_cmd
   } lce_cmd_state_e;
   lce_cmd_state_e state_r, state_n;
 
-  bp_bedrock_lce_cmd_msg_s lce_cmd, lce_cmd_out;
-  bp_bedrock_lce_resp_msg_s lce_resp;
+  bp_bedrock_lce_cmd_msg_header_s lce_cmd, lce_cmd_out;
+  bp_bedrock_lce_resp_msg_header_s lce_resp;
   bp_bedrock_lce_cmd_payload_s lce_cmd_payload, lce_cmd_out_payload;
   bp_bedrock_lce_resp_payload_s lce_resp_payload;
 
-  assign lce_cmd = lce_cmd_i;
-  assign lce_cmd_payload = lce_cmd.header.payload;
-  assign lce_resp_o = lce_resp;
-  assign lce_cmd_o = lce_cmd_out;
+  assign lce_cmd = lce_cmd_header_i;
+  assign lce_cmd_payload = lce_cmd.payload;
+  assign lce_resp_header_o = lce_resp;
+  assign lce_cmd_header_o = lce_cmd_out;
 
   bp_cache_data_mem_pkt_s data_mem_pkt;
   bp_cache_tag_mem_pkt_s tag_mem_pkt;
@@ -281,11 +291,15 @@ module bp_lce_cmd
 
     lce_resp = '0;
     lce_resp_payload = '0;
-    lce_resp_v_o = 1'b0;
+    lce_resp_header_v_o = 1'b0;
+    lce_resp_data_o = '0;
+    lce_resp_data_v_o = 1'b0;
 
     lce_cmd_out = '0;
     lce_cmd_out_payload = '0;
-    lce_cmd_v_o = 1'b0;
+    lce_cmd_header_v_o = 1'b0;
+    lce_cmd_data_o = '0;
+    lce_cmd_data_v_o = 1'b0;
 
     // LCE-Cache Interface signals
     data_mem_pkt = '0;

@@ -85,28 +85,43 @@ module bp_lce
     , input                                          stat_mem_pkt_yumi_i
     , input [cache_stat_info_width_lp-1:0]           stat_mem_i
 
-    // LCE-CCE interface
-    // Req: ready->valid
-    , output logic [lce_req_msg_width_lp-1:0]        lce_req_o
-    , output logic                                   lce_req_v_o
-    , input                                          lce_req_ready_then_i
+    // LCE-CCE Interface
+    // BP Burst protocol: ready&valid
+    // request out
+    , output logic [lce_req_msg_header_width_lp-1:0] lce_req_header_o
+    , output logic                                   lce_req_header_v_o
+    , input                                          lce_req_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_req_data_o
+    , output logic                                   lce_req_data_v_o
+    , input                                          lce_req_data_ready_and_i
+    , output logic                                   lce_req_last_o
 
-    // Resp: ready->valid
-    , output logic [lce_resp_msg_width_lp-1:0]       lce_resp_o
-    , output logic                                   lce_resp_v_o
-    , input                                          lce_resp_ready_then_i
+    // response out
+    , output logic [lce_resp_msg_header_width_lp-1:0] lce_resp_header_o
+    , output logic                                   lce_resp_header_v_o
+    , input                                          lce_resp_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_resp_data_o
+    , output logic                                   lce_resp_data_v_o
+    , input                                          lce_resp_data_ready_and_i
+    , output logic                                   lce_resp_last_o
 
-    // CCE-LCE interface
-    // Cmd_i: valid->yumi
-    , input [lce_cmd_msg_width_lp-1:0]               lce_cmd_i
-    , input                                          lce_cmd_v_i
-    , output logic                                   lce_cmd_yumi_o
+    // command out
+    , output logic [lce_cmd_msg_header_width_lp-1:0] lce_cmd_header_o
+    , output logic                                   lce_cmd_header_v_o
+    , input                                          lce_cmd_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_cmd_data_o
+    , output logic                                   lce_cmd_data_v_o
+    , input                                          lce_cmd_data_ready_and_i
+    , output logic                                   lce_cmd_last_o
 
-    // LCE-LCE interface
-    // Cmd_o: ready->valid
-    , output logic [lce_cmd_msg_width_lp-1:0]        lce_cmd_o
-    , output logic                                   lce_cmd_v_o
-    , input                                          lce_cmd_ready_then_i
+    // command in
+    , input [lce_cmd_msg_header_width_lp-1:0]        lce_cmd_header_i
+    , input                                          lce_cmd_header_v_i
+    , output logic                                   lce_cmd_header_ready_and_o
+    , input [dword_width_gp-1:0]                     lce_cmd_data_i
+    , input                                          lce_cmd_data_v_i
+    , output logic                                   lce_cmd_data_ready_and_o
+    , input                                          lce_cmd_last_i
   );
 
   //synopsys translate_off
@@ -159,10 +174,13 @@ module bp_lce
       ,.credits_empty_o(cache_req_credits_empty_o)
 
       ,.uc_store_req_complete_i(uc_store_req_complete_lo)
-
-      ,.lce_req_o(lce_req_o)
-      ,.lce_req_v_o(lce_req_v_o)
-      ,.lce_req_ready_then_i(lce_req_ready_then_i)
+      ,.lce_req_header_o(lce_req_header_o)
+      ,.lce_req_header_v_o(lce_req_header_v_o)
+      ,.lce_req_header_ready_and_i(lce_req_header_ready_and_i)
+      ,.lce_req_data_o(lce_req_data_o)
+      ,.lce_req_data_v_o(lce_req_data_v_o)
+      ,.lce_req_data_ready_and_i(lce_req_data_ready_and_i)
+      ,.lce_req_last_o(lce_req_last_o)
       );
 
   // LCE Command Module
@@ -206,17 +224,29 @@ module bp_lce
       ,.stat_mem_pkt_yumi_i(stat_mem_pkt_yumi_i)
       ,.stat_mem_i(stat_mem_i)
 
-      ,.lce_cmd_i(lce_cmd_i)
-      ,.lce_cmd_v_i(lce_cmd_v_i)
-      ,.lce_cmd_yumi_o(lce_cmd_yumi_o)
+      ,.lce_resp_header_o(lce_resp_header_o)
+      ,.lce_resp_header_v_o(lce_resp_header_v_o)
+      ,.lce_resp_header_ready_and_i(lce_resp_header_ready_and_i)
+      ,.lce_resp_data_o(lce_resp_data_o)
+      ,.lce_resp_data_v_o(lce_resp_data_v_o)
+      ,.lce_resp_data_ready_and_i(lce_resp_data_ready_and_i)
+      ,.lce_resp_last_o(lce_resp_last_o)
 
-      ,.lce_resp_o(lce_resp_o)
-      ,.lce_resp_v_o(lce_resp_v_o)
-      ,.lce_resp_ready_then_i(lce_resp_ready_then_i)
+      ,.lce_cmd_header_o(lce_cmd_header_o)
+      ,.lce_cmd_header_v_o(lce_cmd_header_v_o)
+      ,.lce_cmd_header_ready_and_i(lce_cmd_header_ready_and_i)
+      ,.lce_cmd_data_o(lce_cmd_data_o)
+      ,.lce_cmd_data_v_o(lce_cmd_data_v_o)
+      ,.lce_cmd_data_ready_and_i(lce_cmd_data_ready_and_i)
+      ,.lce_cmd_last_o(lce_cmd_last_o)
 
-      ,.lce_cmd_o(lce_cmd_o)
-      ,.lce_cmd_v_o(lce_cmd_v_o)
-      ,.lce_cmd_ready_then_i(lce_cmd_ready_then_i)
+      ,.lce_cmd_header_i(lce_cmd_header_i)
+      ,.lce_cmd_header_v_i(lce_cmd_header_v_i)
+      ,.lce_cmd_header_ready_and_o(lce_cmd_header_ready_and_o)
+      ,.lce_cmd_data_i(lce_cmd_data_i)
+      ,.lce_cmd_data_v_i(lce_cmd_data_v_i)
+      ,.lce_cmd_data_ready_and_o(lce_cmd_data_ready_and_o)
+      ,.lce_cmd_last_i(lce_cmd_last_i)
       );
 
 

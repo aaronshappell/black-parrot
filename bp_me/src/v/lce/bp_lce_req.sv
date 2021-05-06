@@ -91,11 +91,16 @@ module bp_lce_req
     // Uncached Store request complete signal
     , input                                          uc_store_req_complete_i
 
-    // LCE-CCE interface
-    // Req: ready->valid
-    , output logic [lce_req_msg_width_lp-1:0]        lce_req_o
-    , output logic                                   lce_req_v_o
-    , input                                          lce_req_ready_then_i
+    // LCE-CCE Interface
+    // BP Burst Interface
+    // request out
+    , output logic [lce_req_msg_header_width_lp-1:0] lce_req_header_o
+    , output logic                                   lce_req_header_v_o
+    , input                                          lce_req_header_ready_and_i
+    , output logic [dword_width_gp-1:0]              lce_req_data_o
+    , output logic                                   lce_req_data_v_o
+    , input                                          lce_req_data_ready_and_i
+    , output logic                                   lce_req_last_o
   );
 
   `declare_bp_bedrock_lce_if(paddr_width_p, cce_block_width_p, lce_id_width_p, cce_id_width_p, lce_assoc_p, lce);
@@ -105,6 +110,7 @@ module bp_lce_req
   typedef enum logic [2:0] {
     e_reset
     ,e_ready
+    ,e_send_uc_store_data
     ,e_send_cached_req
     ,e_send_uncached_req
   } lce_req_state_e;
@@ -113,9 +119,9 @@ module bp_lce_req
   bp_cache_req_s cache_req;
   assign cache_req = cache_req_i;
 
-  bp_bedrock_lce_req_msg_s lce_req;
+  bp_bedrock_lce_req_msg_header_s lce_req;
   bp_bedrock_lce_req_payload_s lce_req_payload;
-  assign lce_req_o = lce_req;
+  assign lce_req_header_o = lce_req;
 
   logic cache_req_v_r;
   bsg_dff_reset
@@ -165,8 +171,8 @@ module bp_lce_req
 
   // Outstanding request credit counter
   logic [`BSG_WIDTH(credits_p)-1:0] credit_count_lo;
-  wire credit_v_li = lce_req_v_o;
-  wire credit_ready_li = lce_req_ready_then_i;
+  wire credit_v_li = lce_req_header_v_o;
+  wire credit_ready_li = lce_req_header_ready_and_i;
   wire credit_returned_li = cache_req_complete_i | uc_store_req_complete_i;
   bsg_flow_counter
     #(.els_p(credits_p))
@@ -186,7 +192,7 @@ module bp_lce_req
   bp_me_addr_to_cce_id
    #(.bp_params_p(bp_params_p))
    req_map
-    (.paddr_i(lce_req.header.addr)
+    (.paddr_i(lce_req.addr)
      ,.cce_id_o(req_cce_id_lo)
      );
 
@@ -196,13 +202,16 @@ module bp_lce_req
     ready_o= 1'b0;
     cache_req_yumi_o = 1'b0;
 
-    lce_req_v_o = 1'b0;
+    lce_req_header_v_o = 1'b0;
+    lce_req_data_v_o = 1'b0;
+    lce_req_last_o = 1'b0;
 
     // Request message defaults
     lce_req = '0;
     lce_req_payload = '0;
     lce_req_payload.dst_id = req_cce_id_lo;
     lce_req_payload.src_id = lce_id_i;
+    lce_req_data_o = '0;
 
     unique case (state_r)
 
@@ -212,7 +221,7 @@ module bp_lce_req
 
       // Ready for new request
       e_ready: begin
-        ready_o = ~credits_full_o & lce_req_ready_then_i & ((lce_mode_i == e_lce_mode_uncached) || sync_done_i);
+        ready_o = ~credits_full_o & ((lce_mode_i == e_lce_mode_uncached) || sync_done_i);
 
         if (ready_o & cache_req_v_i)
           unique case (cache_req.msg_type)
@@ -222,16 +231,21 @@ module bp_lce_req
               state_n = cache_req_yumi_o ? e_send_cached_req : e_ready;
             end
             e_uc_store: begin
-              lce_req_v_o = lce_req_ready_then_i & cache_req_v_i;
+              lce_req_header_v_o = cache_req_v_i;
+              lce_req_data_v_o = cache_req_v_i;
+              lce_req_last_o = cache_req_v_i;
 
-              lce_req.data[0+:dword_width_gp] = cache_req.data[0+:dword_width_gp];
-              lce_req.header.size = bp_bedrock_msg_size_e'(cache_req.size);
-              lce_req.header.addr = cache_req.addr;
-              lce_req.header.msg_type.req = e_bedrock_req_uc_wr;
-              lce_req.header.payload = lce_req_payload;
+              lce_req_data_o[0+:dword_width_gp] = cache_req.data[0+:dword_width_gp];
+              lce_req.size = bp_bedrock_msg_size_e'(cache_req.size);
+              lce_req.addr = cache_req.addr;
+              lce_req.msg_type.req = e_bedrock_req_uc_wr;
+              lce_req.payload = lce_req_payload;
 
-              cache_req_yumi_o = lce_req_v_o;
-              state_n = e_ready;
+              // consume cache request when header sends
+              cache_req_yumi_o = (lce_req_header_v_o & lce_req_header_ready_and_i);
+              // if data also sent, stay in ready, else send data next cycle
+              state_n = (lce_req_data_v_o & lce_req_data_ready_and_i)
+                        ? e_ready : e_send_uc_store_data;
             end
             e_uc_load: begin
               cache_req_yumi_o = cache_req_v_i;
@@ -242,16 +256,24 @@ module bp_lce_req
           endcase
       end
 
+      e_send_uc_store_data: begin
+        lce_req_data_v_o = 1'b1;
+        lce_req_last_o = 1'b1;
+        lce_req_data_o[0+:dword_width_gp] = cache_req_r.data[0+:dword_width_gp];
+        state_n = (lce_req_data_v_o & lce_req_data_ready_and_i) ? e_ready : e_send_uc_store_data;
+      end
+
       // Cached Request
       e_send_cached_req: begin
         // valid cache request arrived last cycle (or earlier) and is held in cache_req_r
 
-        // send when port is ready and metadata has arrived
-        lce_req_v_o = lce_req_ready_then_i & cache_req_metadata_v_r;
+        // send when metadata has arrived
+        lce_req_header_v_o = cache_req_metadata_v_r;
+        lce_req_last_o = cache_req_metadata_v_r;
 
-        lce_req.header.size = req_block_size_lp;
-        lce_req.header.addr = cache_req_r.addr;
-        lce_req.header.msg_type = (cache_req_r.msg_type == e_miss_load)
+        lce_req.size = req_block_size_lp;
+        lce_req.addr = cache_req_r.addr;
+        lce_req.msg_type = (cache_req_r.msg_type == e_miss_load)
           ? e_bedrock_req_rd_miss
           : e_bedrock_req_wr_miss;
 
@@ -262,28 +284,28 @@ module bp_lce_req
             : e_bedrock_req_excl
           : e_bedrock_req_excl;
 
-        lce_req.header.payload = lce_req_payload;
+        lce_req.payload = lce_req_payload;
 
-        state_n = lce_req_v_o
+        state_n = lce_req_header_v_o & lce_req_header_ready_and_i
           ? e_ready
           : e_send_cached_req;
 
       end
 
       // Uncached Request
+      // TODO: why does uncached load not send immediately? Doesn't use metadata...
       e_send_uncached_req: begin
         // valid cache request arrived last cycle (or earlier) and is held in cache_req_r
 
         // send when port is ready and metadata has arrived
-        lce_req_v_o = lce_req_ready_then_i;
+        lce_req_header_v_o = 1'b1;
+        lce_req_last_o = 1'b1;
 
-        lce_req.header.size = bp_bedrock_msg_size_e'(cache_req_r.size);
-        lce_req.header.addr = cache_req_r.addr;
-        lce_req.header.msg_type = e_bedrock_req_uc_rd;
+        lce_req.size = bp_bedrock_msg_size_e'(cache_req_r.size);
+        lce_req.addr = cache_req_r.addr;
+        lce_req.msg_type = e_bedrock_req_uc_rd;
 
-        lce_req.header.payload = lce_req_payload;
-
-        state_n = lce_req_v_o
+        state_n = lce_req_header_v_o & lce_req_header_ready_and_i;
           ? e_ready
           : e_send_uncached_req;
 
