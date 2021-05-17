@@ -96,6 +96,8 @@ module bp_nonsynth_branch_profiler
                 branch_histo[fe_cmd.vaddr] <= 1;
                 miss_histo[fe_cmd.vaddr] <= 0;
               end
+
+            $fwrite(file, "[%x] %d %d %d\n", fe_cmd.vaddr, branch_histo[fe_cmd.vaddr], miss_histo[fe_cmd.vaddr], (miss_histo[fe_cmd.vaddr]*100)/branch_histo[fe_cmd.vaddr]);
           end
         else if (pc_redirect_v)
           begin
@@ -113,6 +115,8 @@ module bp_nonsynth_branch_profiler
                 branch_histo[fe_cmd.vaddr] <= 1;
                 miss_histo[fe_cmd.vaddr]   <= 1;
               end
+
+            $fwrite(file, "[%x] %d %d %d\n", fe_cmd.vaddr, branch_histo[fe_cmd.vaddr], miss_histo[fe_cmd.vaddr], (miss_histo[fe_cmd.vaddr]*100)/branch_histo[fe_cmd.vaddr]);
           end
       end
 
@@ -124,6 +128,9 @@ module bp_nonsynth_branch_profiler
       $fwrite(file, "BHT hit%%: %d\n", (bht_hit_cnt * 100) / (br_cnt));
       $fwrite(file, "==================================== Branches ======================================\n");
       $fwrite(file, "[target\t]\t\toccurances\t\tmisses\t\tmiss%%]\n");
+      
+      $fwrite(file, "test %d %d %d %d %d\n", branch_histo[0], miss_histo[0], (miss_histo[0]*100)/branch_histo[0], branch_histo.num(), miss_histo.num());
+
       foreach (branch_histo[key])
         $fwrite(file, "[%x] %d %d %d\n", key, branch_histo[key], miss_histo[key], (miss_histo[key]*100)/branch_histo[key]);
     end
